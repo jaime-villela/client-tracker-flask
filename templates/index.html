@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
-
 <html>
-
 <head>
-
     <title>My Flask App</title>
-
 </head>
-
 <body>
-
-    <h1>Hello, Flask!</h1>
-
+    <h1>Client Status:
+        {% if status == 'green' %}
+            🟢
+        {% elif status == 'yellow' %}
+            🟡
+        {% else %}
+            🔴
+        {% endif %}
+    </h1>
 </body>
-
 </html>
