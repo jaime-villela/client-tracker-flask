@@ -2,3 +2,4 @@ flask
 requests
 dotenv
 openai
+flask_login

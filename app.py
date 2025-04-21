@@ -1,44 +1,58 @@
-import openai
-import os
-from flask import Flask, render_template
-from dotenv import load_dotenv
-
-load_dotenv()
+from flask import Flask, render_template, request, redirect, url_for
+from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
+# from flask_sqlalchemy import SQLAlchemy  #  If you're using a database
 
 app = Flask(__name__)
-openai.api_key = os.getenv("OPENAI_API_KEY")  #  Replace with your OpenAI API key
+app.config['SECRET_KEY'] = 'your_secret_key'  #  Change this!
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:// /users.db'  #  Example SQLite  database
+# db = SQLAlchemy(app)
 
-def analyze_sentiment(text):
-    try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",  # Or another suitable engine
-            prompt=f"Analyze  the sentiment of the following text: '{text}'.  Return only 'positive',  'negative', or 'neutral'.",
-            max_tokens=10,  # Limit response length 
-            n=1,
-            stop=None,
-            temperature=0.5,  # Adjust for creativity vs.  accuracy
-        )
-        sentiment = response.choices[0].text.strip().lower()
-        return sentiment
-    except Exception as e:
-        print(f"Error during OpenAI API call: {e}")
-        return None
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  #  Where to redirect users who need to log in
 
-@app.route('/')
-def index():
-    text = "The service is bad"  # Replace with  actual client conversation
-    sentiment = analyze_sentiment(text)
+# --- User  Model (Simplified) ---
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
 
-    if sentiment is None:
-        emoji = "❓"  # Unknown status
-    elif sentiment == "positive":
-        emoji = "😊"  # Positive sentiment
-    elif sentiment == "negative":
-        emoji = "😞"  # Negative sentiment
-    else:
-        emoji = "😐"  # Neutral sentiment
-    
-    return render_template('index.html', emoji=emoji)
+# --- Load User Callback ---
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+
+@app.route("/")
+def home():
+    #return "Welcome to my Flask app!"
+    return redirect(url_for('login'))
+
+# --- Login Route ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        #  **VERY  BASIC Authentication - Replace with a Proper System**
+        if username == 'testuser' and password == 'password':
+            user = User(username)  #  Use username as ID
+            login_user(user)
+            return redirect(url_for('protected'))  #  Redirect to a protected page
+        else:
+            return 'Invalid credentials'
+    return render_template('login.html')  #  Create a login.html template
+
+# --- Logout Route ---
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# --- Protected Route ---
+@app.route('/protected')
+@login_required
+def protected():
+    return f'Logged in as: {current_user.id}'
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True) 
